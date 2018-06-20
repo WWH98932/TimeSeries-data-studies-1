@@ -1,0 +1,756 @@
+---
+title: "ECON403B Project 1 1.22.2018"
+author: "Mohammed Ibraaz Syed, Minxuan Wang, Yating Zhang"
+date: "January 22, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(warn = -1)
+library('XML')
+library('RCurl')
+library('plyr')
+library(Quandl)
+library("quantmod")
+require("financeR")
+require("xts")
+library('tseries')
+library("fImport")
+library(fOptions)
+library(nlstools)
+library(tseries)
+library(Quandl)
+library(zoo)
+library(PerformanceAnalytics)
+library(quantmod)
+library(car)
+#library(FinTS)
+library(fOptions)
+library(forecast)
+require(stats)
+#library(stockPortfolio)
+library(vars)
+library(tseries, quietly = T)
+library(forecast, quietly = T)
+library(XML)
+library(fBasics)
+library(timsac)
+library(TTR)
+library(lattice)
+library(foreign)
+library(MASS)
+require(stats4)
+library(KernSmooth)
+library(fastICA)
+library(cluster)
+library(leaps)
+library(mgcv)
+library(rpart)
+require("datasets")
+require(graphics)
+library(RColorBrewer)
+library(plotrix)
+library(strucchange)
+#require("financeR")
+require("xts")
+library(ggplot2)
+library(plyr)
+library(plotrix)
+library(car)
+library(scatterplot3d)
+library(rgl)
+library(plot3D)
+library(lattice)
+library(foreign)
+library(MASS)
+library(car)
+require(stats)
+require(stats4)
+library(KernSmooth)
+library(fastICA)
+library(cluster)
+library(leaps)
+library(mgcv)
+library(rpart)
+library(pan)
+library(mgcv)
+library(DAAG)
+library(TTR)
+library(tis)
+require("datasets")
+require(graphics)
+library(forecast)
+#install.packages("astsa")
+#require(astsa)
+library(xtable)
+# New libraries added:
+library(stats)
+library(TSA)
+library(timeSeries)
+#library(fUnitRoots)
+library(fBasics)
+library(tseries)
+library(timsac)
+library(TTR)
+library(fpp)
+library(strucchange)
+library(data.table)
+library(scales)
+library(ggplot2)
+require(quadprog)
+library(fitdistrplus)
+library(AER)
+library(aod)
+library(foreign)
+library(multcomp)
+library(sandwich)
+library(L1pack)
+library(readxl)
+library(msm)
+library(Hmisc)
+library(psych)
+library("lmtest")
+library(leaps)
+library(viridis)
+#library(oaxaca)
+library(plm)
+```
+
+#### **GROUP MEMBERS:** Mohammed Ibraaz Syed, Minxuan Wang, Yating Zhang
+
+###### Setting working directory:
+```{r}
+setwd("D:/Winter Quarter/403B")
+```
+
+## PROJECT 1 PART I: Airline Data
+
+###### Getting the data:
+```{r}
+data("USAirlines", package = "AER")
+```
+
+#### PROJECT 1 PART I (a)
+
+###### Exploring the data set:
+```{r}
+str(USAirlines)
+```
+
+\pagebreak
+
+###### The above information about the data set indicates that there are only 6 firms. We verify that this is the case:
+```{r fig.height= 3.5}
+plot(USAirlines$firm)
+```
+
+###### We check for missing values:
+```{r fig.height= 3.5}
+aggr(USAirlines)
+```
+
+###### Since there are only 6 firms in the data set and we have no missing values, we conclude that we already have the complete set of observations.
+
+\pagebreak
+
+#### PROJECT 1 PART I (b)
+
+###### Summary statistics for variables in the data set:
+```{r}
+describe(USAirlines)
+```
+
+#### PROJECT 1 PART I (c)
+
+###### Defining variables
+```{r}
+lnC <- log(USAirlines$cost)
+lnQ <- log(USAirlines$output)
+lnQsq <- lnQ^2
+lnP <- log(USAirlines$price)
+```
+
+###### Estimating the cost equation
+```{r}
+model <- lm(lnC ~ lnQ + lnQsq + lnP + load, data = USAirlines)
+summary(model)
+```
+
+\pagebreak
+
+#### PROJECT 1 PART I (d)
+
+###### Model with time effects only:
+```{r}
+model.time <- plm(lnC ~ lnQ + lnQsq + lnP + load, data = USAirlines,
+                  index = c("firm", "year"), model = "within", effect = "time")
+summary(model.time)
+```
+
+\pagebreak
+
+###### Model with firm effect only:
+```{r}
+model.firm <- plm(lnC ~ lnQ + lnQsq + lnP + load, data = USAirlines,
+                  index = c("firm", "year"), model = "within", effect = "individual")
+summary(model.firm)
+```
+
+\pagebreak
+
+###### Model with both firm and time effects:
+```{r}
+model.timeANDfirm <- plm(lnC ~ lnQ + lnQsq + lnP + load, data = USAirlines,
+                         index = c("firm", "year"), model = "within", effect = "twoways")
+summary(model.timeANDfirm)
+```
+
+\pagebreak
+
+###### Comparing the three models:
+```{r}
+stargazer(model.time, model.firm, model.timeANDfirm,
+title="(1) time effects only vs. (2) firm effect only vs. (3) both firm and time effects",
+align = TRUE, header = FALSE, type = 'text', digits = 7, order=c("Constant"),
+model.names = FALSE, omit.stat=c("f"), column.sep.width ="6pt", column.labels =
+c("  Time Effects Only  ", "  Firm Effect Only  ", "  Both Firm and Time Effects  "))
+```
+
+###### We note that the log of output is statistically significant for all models, and so is the load. However, the square of the log of output is only significant at the 1% level for the model with firm effects only, and is significant at the 10% level for the model with time effects only. The square of the log of output is not significant at even the 10% level for the model with both firm and time effects. Also, the log of price is only significant at the 1% level for the model with firm effects only, and is not significant at even the 10% level for the other two models. The Adjusted R squared value of the model with firm effects is the highest, followed by the model with time effects only. The model with both firm and time effects has the lowest Adjusted R squared value.
+
+\pagebreak
+
+#### PROJECT 1 PART I (e)
+
+###### Extracting the fixed effects estimates:
+```{r}
+time.time <- fixef(model.time)
+time.both <- fixef(model.timeANDfirm,effect="time")
+```
+
+###### Estimated yearly effect of model with time effects only:
+```{r fig.height= 3}
+plot(time.time)
+```
+
+###### Estimated yearly effect of model with both time and firm effects:
+```{r fig.height= 3}
+plot(time.both)
+```
+
+###### Observe that the yearly effect of the model with only time effects is much larger than that of the model with both time and firm effects.
+
+\pagebreak
+
+#### PROJECT 1 PART I (f)
+
+###### We note that using the default estimator of the transformation parameter leads to the estimated variance of the time effect being negative, and so we use the "amemiya" estimator from "The estimation of the variances in a variance--components model" (Amemiya, 1971):
+```{r}
+model.random <- plm(lnC ~ lnQ + lnQsq + lnP + load, data = USAirlines,
+index = c("firm", "year"), model = "random", effect = "twoways",
+random.method = "amemiya")
+summary(model.random)
+```
+
+\pagebreak
+
+#### PROJECT 1 PART I (g)
+
+###### Conducting the Hausman Test:
+```{r}
+phtest(model.timeANDfirm, model.random)
+```
+
+###### Due to the high p-value, we fail to reject the null hypothesis, which implies that both models are consistent. If the fixed effect model was appropriate, the random effects estimator would be inconsistent, and so the fixed effects model would've been better. Since neither model is inconsistent, this implies that the random effects model is both consistent and efficient. **Thus, the random effects model is a much more suitable choice for the data at hand.**
+
+\pagebreak
+
+## PROJECT 1 PART II: Wage Equation
+
+###### Getting the data:
+```{r}
+data<-read.csv("wage.csv")
+```
+
+#### PROJECT 1 PART II (a)
+
+###### Fitting a regular OLS model to the data:
+```{r}
+Pr1IIa <- lm(LWAGE ~ EXPER + WKS + OCC + IND + SOUTH + SMSA + MS +
+FEM + UNION + ED + BLK + YEAR + ID, data = data); summary(Pr1IIa)
+```
+
+###### Conducting the Breusch-Pagan test against heteroskedasticity:
+```{r}
+bptest(Pr1IIa)
+```
+
+###### Due to the low p-value, we reject the null hypothesis and conclude that there are signs of heteroskedasticity.
+
+\pagebreak
+
+#### PROJECT 1 PART II (b)
+
+###### **White standard errors:**
+```{r}
+coeftest(Pr1IIa,vcov=hccm(Pr1IIa))
+```
+
+###### Double checking White standard errors:
+```{r}
+coeftest(Pr1IIa, vcovHC)
+```
+
+\pagebreak
+
+###### **Robust panel standard errors:**
+###### We note that the vcovPL() function from the sandwich package returns the Clustered Covariance Matrix Estimation for panel data:
+```{r}
+coeftest(Pr1IIa, vcovPL(Pr1IIa, cluster = data[, c("ID", "YEAR")]))
+```
+
+```{r}
+coeftest(Pr1IIa, vcovPL(Pr1IIa, cluster = data[, c("ID")]))
+```
+
+\pagebreak
+
+###### Comparing White standard errors and robust panel standard errors:
+```{r}
+as.data.frame(sqrt(diag(hccm(Pr1IIa))) 
+            - sqrt(diag(vcovPL(Pr1IIa, cluster = data[, c("ID")]))))
+```
+
+###### Due to the robust panel standard errors being generally smaller than the White standard errors, we can estimate that there is negative correlation within the residuals when we cluster the data. This implies that our model is possibly misspecified and we need better predictors. If we had better predictors, the negative correlation would decrease, leading to a better model.
+
+# NO IDEA WHAT'S UP WITH THIS:
+  
+```{r}
+coeftest(Pr1IIa, vcovPL(Pr1IIa))
+```
+       
+\pagebreak
+
+#### PROJECT 1 PART II (c)
+
+###### Model with individual effect only:
+```{r}
+model.individual <- plm(LWAGE ~ EXPER + WKS + OCC + IND + SOUTH +
+                        SMSA + MS + FEM + UNION + ED + BLK,
+                        data = data, index = c("ID", "YEAR"),
+                        model = "within", effect = "individual")
+summary(model.individual)
+```
+
+\pagebreak
+
+###### Model with individual and time effects:
+```{r}
+model.individualANDtime <- plm(LWAGE ~ EXPER + WKS + OCC + IND + SOUTH +
+                               SMSA + MS + FEM + UNION + ED + BLK,
+                               data = data, index = c("ID", "YEAR"),
+                               model = "within", effect = "twoways")
+summary(model.individualANDtime)
+```
+
+###### Extracting the Fixed Effects estimates:
+```{r}
+individual.individual <- fixef(model.individual)
+individual.individualANDtime <- fixef(model.individualANDtime, effect="individual")
+```
+
+\pagebreak
+
+###### Plotting the Individual Effects from both models:
+```{r fig.height= 7}
+hist(individual.individual, col=rgb(1,0,0,0.5), xlim = c(0,9), ylim = c(0,150),
+main = "Individual Effects from Both Models",
+xlab = "Individual Effects Only Model in Red and Model with Both Effects in Blue")
+hist(individual.individualANDtime, col=rgb(0,0,1,0.5), add=T)
+box()
+```
+
+###### We observe that the model with both individual and time effects has larger individual effects than the model with only individual effects. Also, the individual effects of the model with both effects has less variance.
+
+\pagebreak
+
+#### PROJECT 1 PART II (d)
+
+###### Fitting a random effect model:
+```{r}
+Pr1IId.model.random <- plm(LWAGE ~ EXPER + WKS + OCC + IND + SOUTH +
+                           SMSA + MS + FEM + UNION + ED + BLK,
+                           data = data, index = c("ID", "YEAR"),
+                           model = "random")
+summary(Pr1IId.model.random)
+```
+
+###### Conducting the Hausman test:
+```{r}
+phtest(model.individualANDtime, Pr1IId.model.random)
+```
+
+\pagebreak
+
+###### Due to the very low p-value, we reject the null hypothesis, which implies that the random effect model is inconsistent. **Thus the fixed effect model is more suitable.**
+
+\pagebreak
+
+## PROJECT 1 PART III: US Consumption
+
+###### Getting the data:
+```{r}
+data("USConsump1993", package = "AER")
+```
+
+#### PROJECT 1 PART III (a)
+
+###### Calculating Investment in each period
+```{r}
+# Defining Income
+Pr1Income <- USConsump1993[,1]
+# Defining Expenditure
+Pr1Expenditure <- USConsump1993[,2]
+# Calculating Investment as difference between Income and Expenditure
+Pr1Investment <- USConsump1993[,1] - USConsump1993[,2]
+```
+
+#### Project 1 PART III (b)
+
+#### Calculating the summary statistics of each variable:
+```{r}
+describe(USConsump1993)
+```
+
+#### Estimating Underlying Distributions
+
+###### **Histogram and Density Curve for income**
+
+###### Histogram
+```{r fig.height= 4}
+hist(USConsump1993[,1], xlab= "Income", ylab= "Count",
+     main= "Histogram of Income")
+```
+
+###### Histogram and Density Curve
+```{r fig.height= 4}
+truehist(USConsump1993[,1],col="gainsboro", ylab="Frequency",
+         xlab= "Income",
+         main= "Histogram of Income")
+lines(density((USConsump1993[,1])), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+###### Note that from the summary statistics, we know that both Income and Expenditure have 44 observations.
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r fig.height= 4}
+descdist(USConsump1993[,1][1:44], boot = 1000)
+```
+
+###### It appears that Income is very likely to be a uniform distribution.
+###### Due to the square of skewness values being close to zero, we will also test normal and logistic distributions just to make sure that those are indeed not good fits.
+###### We proceed to fit a uniform distribution, a normal distribution, and a logistic distribution.
+
+###### **Testing fits for distributions**
+```{r}
+# Testing for a uniform distribution
+incomeunif <- fitdist(USConsump1993[,1][1:44], "unif")
+# Testing for a normal distribution
+incomenorm <- fitdist(USConsump1993[,1][1:44], "norm")
+# Testing fit for a logistic distribution
+incomelogis <- fitdist(USConsump1993[,1][1:44], "logis")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("Uniform", "Normal", "Logistic")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(incomeunif, incomenorm, incomelogis), legendtext = plot.legend)
+```
+
+###### Observe that the uniform distribution seems to be a better fir than the normal and logistic distributions based on the theoretical densities of the distributions.
+
+\pagebreak
+
+```{r fig.height= 6}
+cdfcomp(list(incomeunif, incomenorm, incomelogis), legendtext = plot.legend)
+```
+
+###### Observe that the uniform distribution appears much more appropriate than the other two distributions.
+
+\pagebreak
+
+```{r fig.height= 6}
+qqcomp(list(incomeunif, incomenorm, incomelogis), legendtext = plot.legend)
+```
+
+###### As far as the empirical quantiles compared to the theoretical quantiles, the uniform distribution is much better than the normal and logistic distributions.
+
+\pagebreak
+
+```{r fig.height= 6}
+ppcomp(list(incomeunif, incomenorm, incomelogis), legendtext = plot.legend)
+```
+
+###### The P-P plot gives mixed results about which distribution is the best.
+
+\pagebreak
+
+###### **Conclusion about Income**
+###### We conclude that the Income variable is best approximated by a uniform distribution.
+###### We examine a plot of the variable to confirm our conclusion:
+
+```{r}
+plot(USConsump1993[,1][1:44])
+```
+
+###### It does indeed appear that Income follows a relatively uniform distribution.
+
+\pagebreak
+
+###### **Histogram and Density Curve for Expenditure**
+
+###### Histogram
+```{r fig.height= 4}
+hist(USConsump1993[,2], xlab= "Expenditure", ylab= "Count",
+     main= "Histogram of Expenditure")
+```
+
+###### Histogram and Density Curve
+```{r fig.height= 4}
+truehist(USConsump1993[,2],col="gainsboro", ylab="Frequency",
+         xlab= "Expenditure",
+         main= "Histogram of Expenditure")
+lines(density((USConsump1993[,2])), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### Note that from the summary statistics, we know that both Income and Expenditure have 44 observations.
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r fig.height= 4}
+descdist(USConsump1993[,2][1:44], boot = 1000)
+```
+
+###### It appears that Expenditure is very likely to follow a uniform distribution.
+###### Due to the square of skewness values being close to zero, we will also test normal and logistic distributions just to be sure those are indeed not good fits.
+###### We proceed to fit a uniform distribution, a normal distribution, and a logistic distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+```{r}
+# Testing for a uniform distribution
+expenditureunif <- fitdist(USConsump1993[,2][1:44], "unif")
+# Testing for a normal distribution
+expenditurenorm <- fitdist(USConsump1993[,2][1:44], "norm")
+# Testing fit for a logistic distribution
+expenditurelogis <- fitdist(USConsump1993[,2][1:44], "logis")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("Uniform", "Normal", "Logistic")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(expenditureunif, expenditurenorm, expenditurelogis), legendtext = plot.legend)
+```
+
+###### Observe that the uniform distribution seems to be the best fit based on the theoretical densities of the distributions.
+
+\pagebreak
+
+```{r fig.height= 6}
+cdfcomp(list(expenditureunif, expenditurenorm, expenditurelogis), legendtext = plot.legend)
+```
+
+###### Observe that comparing the empirical and theoretical CDFs gives us mixed results as to which distribution is best.
+
+\pagebreak
+
+```{r fig.height= 6}
+qqcomp(list(expenditureunif, expenditurenorm, expenditurelogis), legendtext = plot.legend)
+```
+
+###### As far as the empirical quantiles compared to the theoretical quantiles, the uniform distribution is much better than the normal and logistic distributions.
+
+\pagebreak
+
+```{r fig.height= 6}
+ppcomp(list(expenditureunif, expenditurenorm, expenditurelogis), legendtext = plot.legend)
+```
+
+###### The P-P plot gives mixed results about which distribution is the best.
+
+\pagebreak
+
+###### **Conclusion about Expenditure**
+###### We conclude that the Expenditure variable is best approximated by a uniform distribution.
+###### We examine a plot of the variable to confirm our conclusion:
+
+```{r}
+plot(USConsump1993[,2][1:44])
+```
+
+###### It does indeed appear that Expenditure follows a relatively uniform distribution.
+
+\pagebreak
+
+#### PROJECT 1 PART III (c)
+
+###### Regressing Income on Expenditure using a regular OLS model:
+```{r}
+Pr1IIIc <- lm(Pr1Income ~ Pr1Expenditure)
+summary(Pr1IIIc)
+```
+
+###### Note that the plots of the two variables are the following:
+```{r fig.height= 4}
+plot(USConsump1993)
+```
+
+###### The coefficient for expenditure being 1.08808 is consistent with what we see in the above plot.
+
+\pagebreak
+
+#### PROJECT 1 PART III (d)
+
+###### We were notified on January 20 by the professor that "you can skip question parts 3d and 4c."
+
+\pagebreak
+
+## PROJECT 1 PART IV: Women's Education
+
+###### Getting the data (since the original data set did not have labels, we confirmed during office hours that we could acquire and use a version of the data set - that did include labels - from an alternate source):
+```{r}
+Pr1IVdatafile <- "fertil1.dta"
+Pr1IV <- read.dta(Pr1IVdatafile)
+```
+
+#### PROJECT 1 PART IV (a)
+
+###### Using OLS to estimate model relating number of children ever born to a woman to years of education, age, region, race, and type of environment reared in. A quadratic in age and year dummy variables are included. 
+```{r}
+Pr1IVa <- lm(kids ~ educ + age + east + northcen + west
+                  + black + farm + othrural + town
+                  + smcity + agesq + y74 + y76 + y78
+                  + y80 + y82 + y84 , data = Pr1IV)
+summary(Pr1IVa)
+```
+
+\pagebreak
+
+#### Estimated relationship between fertility and education:
+###### The coefficient for the years of education variable in the model is -0.128427, which indicates that for each additional year of education, a woman has 0.128427 less children.
+
+```{r}
+1/0.128427
+```
+
+###### Note that 1/0.128427 = 7.786525, so for around every 8 years of education that a woman has, she is estimated to have 1 less child.
+
+#### Notable secular change in fertility over the time period:
+
+###### We note from the year dummy variables that the coefficients of y74, y76, y78, y80, y82, and y84 are 0.268183, -0.097379, -0.068666, -0.071305, -0.522484, and -0.545166, respectively. So it appears that fertility has been decreasing over the time period considered. However, since y74, y76, y78, and y80 have p-values above 0.10, with y76, y78, and y80 having particularly high p-values (each over 0.50), we can not draw strong conclusions from the coefficients of these particular variables. Nonetheless, since y82 and y84 do indeed have very low p-values, we conclude that there is a long-term negative trend in fertility over the time period.
+
+###### Just to verify our conclusion, we plot a loess smoother (red) and a regression line (green) for the kids and year variables.
+
+```{r}
+scatterplot(Pr1IV$year, Pr1IV$kids, smoother = loessLine)
+```
+
+###### Our plot verifies our conclusion from our OLS model that there is a long-term negative trend in fertility over the time period.
+
+\pagebreak
+
+#### PROJECT 1 PART IV (b)
+
+###### We need to re-estimate the model above, using mother's education and father's education as instruments for education.
+###### We first verify that educ and meduc, and educ and feduc, are indeed correlated:
+
+```{r}
+Pr1IV.MeducCORR <- lm(educ ~ meduc, data = Pr1IV)
+summary(Pr1IV.MeducCORR)
+```
+
+###### Due to the low p-value, and the non-zero coefficient for meduc, we note that the correlation between education and father's education is nonzero.
+
+```{r}
+Pr1IV.FeducCORR <- lm(educ ~ feduc, data = Pr1IV)
+summary(Pr1IV.FeducCORR)
+```
+
+###### Due to the low p-value, and the non-zero coefficient for feduc, we note that the correlation between education and father's education is nonzero.
+
+###### Thus, we conclude the relevance of both variables.
+
+###### Now we proceed to check for exogeneity, in that mother's education and father's education are not correlated with the error term from the original regression.
+
+###### **Estimating errors from the original regression:**
+```{r fig.height= 3.4}
+# Calculating Errors
+Pr1IVbError <- fitted(Pr1IVa) - Pr1IV$kids
+# Plotting Errors
+plot(Pr1IVbError)
+# Histogram of Errors
+hist(Pr1IVbError)
+```
+
+###### We note that there does not seem to be a discernible pattern in the errors.
+
+\pagebreak
+
+###### We proceed to check that mother's and father's education is uncorrelated with the errors from our regression.
+
+```{r}
+meducCHECK <- lm(Pr1IVbError ~ Pr1IV$meduc)
+summary(meducCHECK)
+```
+
+###### Due to the high p-value, we conclude that mother's education is not correlated with the error from the original regression.
+
+```{r}
+feducCHECK <- lm(Pr1IVbError ~ Pr1IV$feduc)
+summary(feducCHECK)
+```
+
+###### Due to the high p-value, we conclude that father's education is not correlated with the error from the original regression.
+
+###### Therefore, we conclude that mother's education and father's education are valid instruments for education.
+
+###### We re-estimate our model, using mother's education and father's education as instruments for education:
+```{r}
+Pr1IVb <- lm(kids ~ educ + age + east + northcen + west
+                  + black + farm + othrural + town
+                  + smcity + agesq + y74 + y76 + y78
+                  + y80 + y82 + y84 + meduc + feduc, data = Pr1IV)
+```
+
+\pagebreak
+
+###### Summary of model:
+```{r}
+summary(Pr1IVb)
+```
+
+###### Observe that in the original model, the coefficient for educ was -0.128427 and had a p-value less than 0.001. In the model with meduc and feduc as instrumental variables, the coefficient for educ is -0.121602 and the p-value is less than 0.001.
+
+\pagebreak
+
+###### Observe from the below histogram of the variable educ that the minimum is 0 and the maximum is 20:
+```{r}
+hist(Pr1IV$educ)
+```
+
+###### We note that since the variable educ has a range between 0 and 20, the difference between the coefficient for educ in the original model (-0.128427), and the coefficient for educ in the model with meduc and feduc as instrumental variables (-0.121602), is negligible.

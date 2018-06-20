@@ -1,0 +1,150 @@
+---
+title: "Untitled"
+author: "Minxuan Wang"
+date: "2018Äê1ÔÂ11ÈÕ"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("AER")
+library(AER)
+data("USAirlines")
+```
+
+```{r}
+mydata<-USAirlines
+firm1<-mydata[mydata$firm==1,]
+firm2<-mydata[mydata$firm==2,]
+firm3<-mydata[mydata$firm==3,]
+firm4<-mydata[mydata$firm==4,]
+firm5<-mydata[mydata$firm==5,]
+firm6<-mydata[mydata$firm==6,]
+summary(firm1)
+summary(firm2)
+summary(firm3)
+summary(firm4)
+summary(firm5)
+summary(firm6)
+```
+```{r}
+install.packages("plm")
+library(plm)
+```
+# c
+```{r}
+cost<-mydata$cost
+output<-mydata$output
+price<-mydata$price
+load<-mydata$load
+model<-lm(log(cost)~log(output)+log(output2)+log(price)+load,data=mydata)
+summary(model)
+```
+# d
+```{r}
+model.fixed<-plm(log(cost)~log(output)+log(output)^2+log(price)+load,data=mydata,model="within",index=c("firm","year"))
+summary(model.fixed)
+model.fixed.1<-plm(log(cost)~log(output)+log(output)^2+log(price)+load,data=mydata,model="within",effect="time")
+summary(model.fixed.1)
+model.fixed.2<-plm(log(cost)~log(output)+log(output)^2+log(price)+load,data=mydata,model="within",effect="individual")
+summary(model.fixed.2)
+model.fixed.3<-plm(log(cost)~log(output)+log(output)^2+log(price)+load,data=mydata,model="within",effect="twoways")
+summary(model.fixed.3)
+```
+
+# e
+```{r}
+time.effect.1<-fixef(model.fixed.1)
+time.effect.3<-fixef(model.fixed.3,effect="time")
+time.effect.1
+time.effect.3
+plot(c(1970:1984),time.effect.1,ylab="Effect",xlab="Year",type="l",lwd=2,ylim=c(0,25))
+lines(c(1970:1984),time.effect.3,lty=2,lwd=2,col="red")
+legend(1980,18,col=c("black","red"),lwd=c(2,2),lty=c(1,2),c("Only Year","Year&Firm"))
+```
+
+# f
+```{r}
+model.random.1<-plm(log(cost)~log(output)+log(output)^2+log(price)+load,data=mydata,model="random",effect="time")
+summary(model.random.1)
+model.random.2<-plm(log(cost)~log(output)+log(output)^2+log(price)+load,data=mydata,model="random",effect="individual")
+summary(model.random.2)
+model.random.3<-plm(log(cost)~log(output)+log(output)^2+log(price)+load,data=mydata,model="random",effect="twoways")
+summary(model.random.3)
+```
+
+```{r}
+random.effect.3<-ranef(model.random.3)
+random.effect.3
+```
+# g
+```{r}
+phtest(model.fixed.1, model.random.1)
+phtest(model.fixed.2, model.random.2)
+phtest(model.fixed.3, model.random.3)
+```
+
+# 2
+#a 
+```{r}
+setwd("D:/Winter Quarter/403B/Data Files-20180110")
+data<-read.csv("wage.csv")
+data
+```
+
+```{r}
+id<-data$ID
+year<-data$YEAR
+lwage<-data$LWAGE
+exper<-data$EXPER
+wks<-data$WKS
+occ<-data$OCC
+ind<-data$IND
+south<-data$SOUTH
+smsa<-data$SMSA
+ms<-data$MS
+fem<-data$FEM
+union<-data$UNION
+ed<-data$ED
+blk<-data$BLK
+fitmodel<-lm(lwage~id+year+exper+wks+occ+ind+south+smsa+ms+fem+union+ed+blk)
+summary(fitmodel)
+bptest(fitmodel)
+```
+
+# b
+```{r}
+# White standard error
+library(sandwich)
+coeftest(fitmodel,vcov=sandwich)
+# robust panel standard errors
+fixed.model<-plm(lwage~exper+wks+occ+ind+south+smsa+ms+fem+union+ed+blk,model="within",data=data,index=c("ID","YEAR"))
+coeftest(fixed.model,vcov=vcovHC(fixed.model,type="HC0",cluster="group"))
+```
+
+# c
+```{r}
+fixed.model<-plm(lwage~exper+wks+occ+ind+south+smsa+ms+fem+union+ed+blk,model="within",data=data,index=c("ID","YEAR"))
+summary(fixed.model)
+```
+
+```{r}
+fixed.model.1<-plm(lwage~exper+wks+occ+ind+south+smsa+ms+fem+union+ed+blk,data=data,model="within",effect="individual",index=c("ID","YEAR"))
+summary(fixed.model.1)
+```
+
+```{r}
+fixed.model.2<-plm(lwage~exper+wks+occ+ind+south+smsa+ms+fem+union+ed+blk,data=data,model="within",effect="twoways",index=c("ID","YEAR"))
+summary(fixed.model.2)
+```
+
+# d
+```{r}
+random.model<-plm(lwage~exper+wks+occ+ind+south+smsa+ms+fem+union+ed+blk,data=data,model="random",effect="twoways",index=c("ID","YEAR"))
+summary(random.model)
+```
+
+
